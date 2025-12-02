@@ -1,0 +1,430 @@
+{% extends 'racing/base.html' %}
+
+{% block title %}{{ driver.full_name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+
+    <!-- ================= ЛЕВАЯ КОЛОНКА ================= -->
+    <div class="col-md-4">
+
+        <!-- Карточка профиля -->
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                {% if driver.photo %}
+                    <img src="{{ driver.photo.url }}" class="img-fluid rounded mb-3" alt="{{ driver.surname }}" style="max-height: 400px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-light text-secondary rounded mb-3 d-flex align-items-center justify-content-center mx-auto" style="height: 250px; width: 100%; max-width: 250px;">
+                        <i class="bi bi-person-fill" style="font-size: 5rem;"></i>
+                    </div>
+                {% endif %}
+
+                <h3 class="fw-bold">{{ driver.forename }} {{ driver.surname }}</h3>
+
+                <div class="mb-3">
+                    {% if driver.number %}
+                        <span class="badge bg-danger rounded-pill fs-6">#{{ driver.number }}</span>
+                    {% endif %}
+                    <span class="badge bg-light text-dark border ms-1">{{ driver.code }}</span>
+                </div>
+
+                <p class="text-muted fw-bold mb-1">{{ driver.nationality }}</p>
+                {% if driver.dob %}
+                    <p class="text-muted small">Дата рождения: {{ driver.dob|date:"d.m.Y" }}</p>
+                {% endif %}
+
+                {% if driver.championships > 0 %}
+                <div class="mt-2">
+                    <span class="badge bg-warning text-dark border border-warning">
+                        <i class="bi bi-trophy-fill"></i> {{ driver.championships }}x Чемпион Мира
+                    </span>
+                </div>
+                {% endif %}
+
+                {% if driver.url %}
+                    <a href="{{ driver.url }}" target="_blank" class="btn btn-outline-dark btn-sm mt-3">
+                        <i class="bi bi-wikipedia"></i> Википедия
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Команды -->
+        <div class="card mt-4 border-0 shadow-sm">
+            <div class="card-header bg-dark text-white fw-bold">
+                <i class="bi bi-clock-history"></i> Команды карьеры
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for item in teams_history %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <!-- Ссылка на команду -->
+                            <a href="{% url 'constructor_detail' item.team.constructor_ref %}" class="fw-bold text-dark text-decoration-none text-truncate" style="max-width: 180px;">
+                                {{ item.team.name }}
+                            </a>
+                            <span class="badge bg-secondary rounded-pill" style="font-size: 0.75em;">{{ item.period }}</span>
+                        </div>
+
+                        <!-- Нижний ряд: Википедия (если есть) -->
+
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted">Нет данных о командах</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- ================= ПРАВАЯ КОЛОНКА ================= -->
+    <div class="col-md-8">
+
+        <!-- 1. СТАТИСТИКА КАРЬЕРЫ -->
+        <h5 class="fw-bold text-uppercase text-muted mb-3"><i class="bi bi-graph-up"></i> Карьера (Total)</h5>
+        <div class="row mb-4 g-2">
+            <div class="col-md-2 col-4">
+                <div class="stat-box h-100 shadow-sm py-2">
+                    <div class="stat-num fs-4 text-dark">{{ career_stats.races }}</div>
+                    <div class="stat-label small">Гонок</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-4">
+                <div class="stat-box h-100 shadow-sm py-2">
+                    <div class="stat-num fs-4 text-warning">{{ career_stats.wins }}</div>
+                    <div class="stat-label small">Побед</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-4">
+                <div class="stat-box h-100 shadow-sm py-2">
+                    <div class="stat-num fs-4 text-primary">{{ career_stats.podiums }}</div>
+                    <div class="stat-label small">Подиумов</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-4">
+                <div class="stat-box h-100 shadow-sm py-2">
+                    <div class="stat-num fs-4 text-success">{{ career_stats.points|floatformat:0 }}</div>
+                    <div class="stat-label small">Очков</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-4">
+                <div class="stat-box h-100 shadow-sm py-2">
+                    <div class="stat-num fs-4 text-info">{{ career_stats.poles }}</div>
+                    <div class="stat-label small">Поулов</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-4">
+                <div class="stat-box h-100 shadow-sm py-2">
+                    <div class="stat-num fs-4 text-danger">{{ career_stats.dnfs }}</div>
+                    <div class="stat-label small">Сходов</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. СТАТИСТИКА СЕЗОНА -->
+        <div class="card bg-white border mb-4 shadow-sm">
+            <div class="card-header bg-transparent fw-bold text-uppercase d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calculator"></i> Статистика сезона {{ selected_year }}</span>
+
+                {% if available_years %}
+                <form method="get" class="d-flex align-items-center">
+                    <!-- Скрытое поле, чтобы сохранить сортировку при смене года, но обычно при смене года лучше сбрасывать сортировку -->
+                    <select name="year" class="form-select form-select-sm border-0 bg-light fw-bold" style="cursor: pointer;" onchange="this.form.submit()">
+                        {% for y in available_years %}
+                            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                {% endif %}
+            </div>
+
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4 border-end">
+                        <h6 class="text-muted small fw-bold mb-3">ГРАН-ПРИ</h6>
+                        <div class="row">
+                            <div class="col-6 mb-2"><span class="fw-bold d-block">{{ season_gp_stats.wins }}</span> <small class="text-muted" style="font-size:0.7em">ПОБЕД</small></div>
+                            <div class="col-6 mb-2"><span class="fw-bold d-block">{{ season_gp_stats.podiums }}</span> <small class="text-muted" style="font-size:0.7em">ПОДИУМОВ</small></div>
+                            <div class="col-12"><span class="fw-bold fs-5 text-dark">{{ season_gp_stats.points|floatformat:0 }}</span> <small class="text-muted">Очков</small></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 border-end">
+                        <h6 class="text-muted small fw-bold mb-3">СПРИНТЫ</h6>
+                        <div class="row">
+                            <div class="col-6 mb-2"><span class="fw-bold d-block">{{ season_sprint_stats.wins }}</span> <small class="text-muted" style="font-size:0.7em">ПОБЕД</small></div>
+                            <div class="col-6 mb-2"><span class="fw-bold d-block">{{ season_sprint_stats.podiums }}</span> <small class="text-muted" style="font-size:0.7em">ПОДИУМОВ</small></div>
+                            <div class="col-12"><span class="fw-bold fs-5 text-dark">{{ season_sprint_stats.points|floatformat:0 }}</span> <small class="text-muted">Очков</small></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 bg-light rounded py-1 d-flex flex-column justify-content-center">
+                        <h6 class="text-danger small fw-bold">ИТОГО</h6>
+                        <div class="display-6 fw-bold text-dark">{{ season_total_stats.points|floatformat:0 }}</div>
+                        <small class="text-muted">Очков за сезон</small>
+                    </div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <button class="btn btn-sm btn-outline-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#fullStatsCollapse" aria-expanded="false" aria-controls="fullStatsCollapse">
+                        <i class="bi bi-chevron-down"></i> Подробная статистика
+                    </button>
+                </div>
+
+                <div class="collapse mt-3" id="fullStatsCollapse">
+                    <div class="card card-body bg-light border-0">
+                        <h6 class="fw-bold text-center mb-3">Полная детализация сезона {{ selected_year }}</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered text-center align-middle bg-white mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-start">Показатель</th>
+                                        <th>Гран-при</th>
+                                        <th>Спринты</th>
+                                        <th class="table-active fw-bold">Всего</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-start text-muted">Гонок (Стартов)</td>
+                                        <td>{{ season_gp_stats.races }}</td>
+                                        <td>{{ season_sprint_stats.races }}</td>
+                                        <td class="fw-bold">{{ season_gp_stats.races|add:season_sprint_stats.races }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-start text-muted">Победы</td>
+                                        <td class="{% if season_gp_stats.wins > 0 %}text-success fw-bold{% endif %}">{{ season_gp_stats.wins }}</td>
+                                        <td class="{% if season_sprint_stats.wins > 0 %}text-success fw-bold{% endif %}">{{ season_sprint_stats.wins }}</td>
+                                        <td class="fw-bold">{{ season_gp_stats.wins|add:season_sprint_stats.wins }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-start text-muted">Подиумы</td>
+                                        <td class="{% if season_gp_stats.podiums > 0 %}text-primary fw-bold{% endif %}">{{ season_gp_stats.podiums }}</td>
+                                        <td class="{% if season_sprint_stats.podiums > 0 %}text-primary fw-bold{% endif %}">{{ season_sprint_stats.podiums }}</td>
+                                        <td class="fw-bold">{{ season_gp_stats.podiums|add:season_sprint_stats.podiums }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-start text-muted">Поул-позиции</td>
+                                        <td>{{ season_gp_stats.poles }}</td>
+                                        <td>{{ season_sprint_stats.poles }}</td>
+                                        <td class="fw-bold">{{ season_gp_stats.poles|add:season_sprint_stats.poles }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-start text-muted">Топ-10</td>
+                                        <td>{{ season_gp_stats.top10s }}</td>
+                                        <td>{{ season_sprint_stats.top10s }}</td>
+                                        <td class="fw-bold">{{ season_gp_stats.top10s|add:season_sprint_stats.top10s }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-start text-muted">Сходы (DNF)</td>
+                                        <td class="{% if season_gp_stats.dnfs > 0 %}text-danger{% endif %}">{{ season_gp_stats.dnfs }}</td>
+                                        <td class="{% if season_sprint_stats.dnfs > 0 %}text-danger{% endif %}">{{ season_sprint_stats.dnfs }}</td>
+                                        <td class="fw-bold">{{ season_gp_stats.dnfs|add:season_sprint_stats.dnfs }}</td>
+                                    </tr>
+                                    <tr class="table-active">
+                                        <td class="text-start fw-bold">Очки</td>
+                                        <td>{{ season_gp_stats.points|floatformat:0 }}</td>
+                                        <td>{{ season_sprint_stats.points|floatformat:0 }}</td>
+                                        <td class="fw-bold text-danger">{{ season_total_stats.points|floatformat:0 }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Биография -->
+        {% if driver.biography %}
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title fw-bold border-bottom pb-2">Биография</h5>
+                <p class="card-text mt-3">{{ driver.biography|linebreaks }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 3. ТАБЛИЦА РЕЗУЛЬТАТОВ -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold m-0">Результаты гонок</h4>
+
+            <!-- КНОПКА СОРТИРОВКИ -->
+            <a href="?year={{ selected_year }}&sort={% if sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-down-up"></i>
+                {% if sort_order == 'asc' %}
+                    Сначала новые (↓)
+                {% else %}
+                    Сначала старые (↑)
+                {% endif %}
+            </a>
+        </div>
+
+        <div class="card border-0 shadow-sm overflow-hidden">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>Гран-при</th>
+                        <th>Дата</th>
+                        <th>Команда</th>
+                        <th class="text-center">Квал.</th>
+                        <th class="text-center">Финиш</th>
+                        <th class="text-center fw-bold">Очки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in table_data %}
+
+                    <!-- ЛОГИКА СОРТИРОВКИ: ASC (Спринт -> Гонка) -->
+                    {% if sort_order == 'asc' %}
+
+                        <!-- 1. Строка СПРИНТА -->
+                        {% if row.sprint %}
+                            <tr style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+                                <!-- Убрали класс ps-4 (отступ) -->
+                                <td class="text-start py-2">
+                                    <div class="d-flex flex-column">
+                                        <!-- СДЕЛАЛИ ССЫЛКУ НА ГОНКУ -->
+                                        <a href="{% url 'race_detail' row.race.year row.race.round %}" class="small text-muted fw-bold text-uppercase fst-italic mb-1 text-decoration-none hover-danger">
+                                            <i class="bi bi-speedometer2"></i> Результат квалификационного спринта
+                                        </a>
+
+                                        <!-- Трасса -->
+                                        <a href="{% url 'circuit_detail' row.race.circuit.circuit_ref %}" class="small text-muted text-decoration-none hover-danger">
+                                            {{ row.race.circuit.name }}
+                                        </a>
+                                    </div>
+                                </td>
+
+                                <!-- Дата спринта -->
+                                <td class="small text-muted py-2 align-middle">
+                                    {{ row.race.sprint_date|date:"d b Y"|default:"-" }}
+                                </td>
+
+                                <!-- Команда -->
+                                <td class="py-2 align-middle">
+                                    <a href="{% url 'constructor_detail' row.sprint.constructor.constructor_ref %}" class="text-decoration-none text-dark">
+                                        {{ row.sprint.constructor.name }}
+                                    </a>
+                                </td>
+
+                                <td class="text-center py-2 small text-muted align-middle">{{ row.sprint.grid }}</td>
+                                <td class="text-center py-2 align-middle">
+                                    <small class="fw-bold text-dark">{{ row.sprint.position_text }}</small>
+                                </td>
+                                <td class="text-center py-2 align-middle">
+                                    <small class="text-muted">{{ row.sprint.points|floatformat:0 }}</small>
+                                </td>
+                            </tr>
+                        {% endif %}
+
+                        <!-- 2. Строка ГРАН-ПРИ -->
+                        {% if row.main %}
+                            <tr class="bg-white">
+                                <td class="py-2">
+                                    <a href="{% url 'race_detail' row.race.year row.race.round %}" class="fw-bold d-block text-dark text-decoration-none hover-danger">
+                                        {{ row.race.name }}
+                                    </a>
+                                    <a href="{% url 'circuit_detail' row.race.circuit.circuit_ref %}" class="small text-muted text-decoration-none hover-danger">
+                                        {{ row.race.circuit.name }}
+                                    </a>
+                                </td>
+                                <td class="small py-2 align-middle">{{ row.race.date|date:"d b Y" }}</td>
+                                <td class="py-2 align-middle">
+                                    <a href="{% url 'constructor_detail' row.main.constructor.constructor_ref %}" class="text-decoration-none text-dark">
+                                        {{ row.main.constructor.name }}
+                                    </a>
+                                </td>
+                                <td class="text-center py-2 align-middle">{{ row.main.grid }}</td>
+                                <td class="text-center py-2 align-middle">
+                                    {% if row.main.position == 1 %}
+                                        <span class="badge bg-warning text-dark border border-warning">1</span>
+                                    {% elif row.main.position <= 3 %}
+                                        <span class="badge bg-secondary border">{{ row.main.position }}</span>
+                                    {% else %}
+                                        <span class="fw-bold">{{ row.main.position_text }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center fw-bold py-2 align-middle">{{ row.main.points|floatformat:0 }}</td>
+                            </tr>
+                        {% endif %}
+
+                    {% else %}
+                        <!-- ОБРАТНЫЙ ПОРЯДОК (DESC): Гонка -> Спринт -->
+
+                        {% if row.main %}
+                            <tr class="bg-white">
+                                <td class="py-2">
+                                    <a href="{% url 'race_detail' row.race.year row.race.round %}" class="fw-bold d-block text-dark text-decoration-none hover-danger">
+                                        {{ row.race.name }}
+                                    </a>
+                                    <a href="{% url 'circuit_detail' row.race.circuit.circuit_ref %}" class="small text-muted text-decoration-none hover-danger">
+                                        {{ row.race.circuit.name }}
+                                    </a>
+                                </td>
+                                <td class="small py-2 align-middle">{{ row.race.date|date:"d b Y" }}</td>
+                                <td class="py-2 align-middle">
+                                    <a href="{% url 'constructor_detail' row.main.constructor.constructor_ref %}" class="text-decoration-none text-dark">
+                                        {{ row.main.constructor.name }}
+                                    </a>
+                                </td>
+                                <td class="text-center py-2 align-middle">{{ row.main.grid }}</td>
+                                <td class="text-center py-2 align-middle">
+                                    {% if row.main.position == 1 %}
+                                        <span class="badge bg-warning text-dark border border-warning">1</span>
+                                    {% elif row.main.position <= 3 %}
+                                        <span class="badge bg-secondary border">{{ row.main.position }}</span>
+                                    {% else %}
+                                        <span class="fw-bold">{{ row.main.position_text }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center fw-bold py-2 align-middle">{{ row.main.points|floatformat:0 }}</td>
+                            </tr>
+                        {% endif %}
+
+                        {% if row.sprint %}
+                            <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                <!-- Убрали класс ps-4 -->
+                                <td class="text-start py-2">
+                                    <div class="d-flex flex-column">
+                                        <!-- ССЫЛКА НА ГОНКУ -->
+                                        <a href="{% url 'race_detail' row.race.year row.race.round %}" class="small text-muted fw-bold text-uppercase fst-italic mb-1 text-decoration-none hover-danger">
+                                            <i class="bi bi-speedometer2"></i> Результат квалификационного спринта
+                                        </a>
+                                        <a href="{% url 'circuit_detail' row.race.circuit.circuit_ref %}" class="small text-muted text-decoration-none hover-danger">
+                                            {{ row.race.circuit.name }}
+                                        </a>
+                                    </div>
+                                </td>
+                                <td class="small text-muted py-2 align-middle">
+                                    {{ row.race.sprint_date|date:"d b Y"|default:"-" }}
+                                </td>
+                                <td class="py-2 align-middle">
+                                    <a href="{% url 'constructor_detail' row.sprint.constructor.constructor_ref %}" class="text-decoration-none text-dark">
+                                        {{ row.sprint.constructor.name }}
+                                    </a>
+                                </td>
+                                <td class="text-center py-2 small text-muted align-middle">{{ row.sprint.grid }}</td>
+                                <td class="text-center py-2 align-middle">
+                                    <small class="fw-bold text-dark">{{ row.sprint.position_text }}</small>
+                                </td>
+                                <td class="text-center py-2 align-middle">
+                                    <small class="text-muted">{{ row.sprint.points|floatformat:0 }}</small>
+                                </td>
+                            </tr>
+                        {% endif %}
+
+                    {% endif %}
+
+                {% empty %}
+                <tr><td colspan="6" class="text-center py-5">Нет данных за этот сезон.</td></tr>
+                {% endfor %}
+                </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+<style>
+    .hover-danger:hover { color: #e10600 !important; text-decoration: underline !important; }
+</style>

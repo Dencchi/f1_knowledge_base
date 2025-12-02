@@ -1,0 +1,164 @@
+{% extends 'racing/base.html' %}
+{% load racing_extras %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+
+<!-- 1. ШАПКА + НАВИГАЦИЯ (СВЕРХУ) -->
+<div class="row align-items-center mb-5">
+    <!-- Заголовок слева -->
+    <div class="col-lg-4 mb-3 mb-lg-0">
+        <h1 class="fw-bold text-uppercase m-0">F1 <span class="text-danger">Base</span></h1>
+        <p class="text-muted m-0">Статистика и аналитика</p>
+    </div>
+
+    <!-- Кнопки быстрого доступа справа -->
+    <div class="col-lg-8">
+        <div class="row g-2">
+            <div class="col-3">
+                <a href="{% url 'driver_list' %}" class="btn btn-white shadow-sm w-100 h-100 d-flex flex-column align-items-center justify-content-center py-2 border hover-up text-decoration-none">
+                    <i class="bi bi-person-bounding-box text-danger mb-1 fs-5"></i>
+                    <span class="small fw-bold text-dark">Пилоты</span>
+                </a>
+            </div>
+            <div class="col-3">
+                <a href="{% url 'constructor_list' %}" class="btn btn-white shadow-sm w-100 h-100 d-flex flex-column align-items-center justify-content-center py-2 border hover-up text-decoration-none">
+                    <i class="bi bi-people-fill text-primary mb-1 fs-5"></i>
+                    <span class="small fw-bold text-dark">Команды</span>
+                </a>
+            </div>
+            <div class="col-3">
+                <a href="{% url 'circuit_list' %}" class="btn btn-white shadow-sm w-100 h-100 d-flex flex-column align-items-center justify-content-center py-2 border hover-up text-decoration-none">
+                    <i class="bi bi-map-fill text-success mb-1 fs-5"></i>
+                    <span class="small fw-bold text-dark">Трассы</span>
+                </a>
+            </div>
+            <div class="col-3">
+                <a href="{% url 'season_detail' current_year|default:2025 %}" class="btn btn-white shadow-sm w-100 h-100 d-flex flex-column align-items-center justify-content-center py-2 border hover-up text-decoration-none">
+                    <i class="bi bi-trophy-fill text-warning mb-1 fs-5"></i>
+                    <span class="small fw-bold text-dark">Итоги</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+
+    <!-- БЛОК 1: СЛЕДУЮЩАЯ ГОНКА (БОЛЬШОЙ) -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100 overflow-hidden text-white bg-dark position-relative">
+            {% if next_race %}
+                <!-- ФОН (Трасса) -->
+                {% if next_race.circuit.layout_image %}
+                <div class="position-absolute top-0 end-0 w-50 h-100"
+                     style="background-image: url('{{ next_race.circuit.layout_image.url }}');
+                            background-size: contain; background-repeat: no-repeat; background-position: center right;
+                            filter: invert(1) opacity(0.15); margin-right: -20px;">
+                </div>
+                {% endif %}
+
+                <div class="card-body p-4 position-relative d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="badge bg-danger mb-2">СЛЕДУЮЩИЙ ЭТАП</div>
+                        <h2 class="display-5 fw-bold mb-0">{{ next_race.name }}</h2>
+                        <p class="lead text-white-50">{{ next_race.circuit.name }}</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fi fi-{{ next_race.circuit.country|get_flag_code }} fis" style="font-size: 3rem; border-radius: 5px;"></span>
+                            <div>
+                                <h4 class="m-0 fw-bold">{{ next_race.date|date:"d E" }}</h4>
+                                <small class="text-white-50">Через {{ next_race.date|timeuntil }}</small>
+                            </div>
+                        </div>
+
+                        <!-- Кнопка перехода -->
+                        <a href="{% url 'calendar' next_race.year %}" class="btn btn-outline-light mt-3 stretched-link">
+                            Открыть календарь <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card-body p-5 text-center">
+                    <h3 class="text-white-50">Сезон завершен</h3>
+                    <p>Ждем календарь на следующий год.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ПРАВАЯ КОЛОНКА -->
+    <div class="col-lg-4">
+
+        <!-- БЛОК 2: ПРОШЛЫЙ ПОБЕДИТЕЛЬ -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold text-uppercase small text-muted border-bottom-0 pt-3">
+                Предыдущий этап
+            </div>
+            <div class="card-body pt-0">
+                {% if last_race and last_winner %}
+                    <div class="d-flex align-items-center">
+                        <!-- Фото -->
+                        <div class="me-3">
+                            {% if last_winner.driver.photo %}
+                                <img src="{{ last_winner.driver.photo.url }}" class="rounded-circle border" style="width: 60px; height: 60px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;"><i class="bi bi-trophy"></i></div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <small class="text-muted d-block lh-1">{{ last_race.name }}</small>
+                            <a href="{% url 'driver_detail' last_winner.driver.driver_ref %}" class="fw-bold text-dark text-decoration-none fs-5">
+                                {{ last_winner.driver.surname }}
+                            </a>
+                            <div class="small fw-bold" style="color: {{ last_winner.constructor.hex_color|default:'#333' }}">
+                                {{ last_winner.constructor.name }}
+                            </div>
+                        </div>
+                        <a href="{% url 'race_detail' last_race.year last_race.round %}" class="btn btn-sm btn-light ms-auto stretched-link"><i class="bi bi-chevron-right"></i></a>
+                    </div>
+                {% else %}
+                    <p class="text-muted small">Нет данных о прошедших гонках.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- БЛОК 3: ТОП-3 ЧЕМПИОНАТА -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-bold text-uppercase small text-muted border-bottom-0 pt-3 d-flex justify-content-between">
+                <span>Лидеры сезона {{ current_year }}</span>
+                <a href="{% url 'season_detail' current_year|default:2025 %}" class="text-decoration-none small">Весь зачет</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for item in top_3 %}
+                <li class="list-group-item d-flex align-items-center py-2 border-0">
+                    <span class="fw-bold text-secondary me-3 w-auto" style="width: 20px;">{{ forloop.counter }}</span>
+
+                    <!-- Цветная полоска команды -->
+                    <span class="me-2 rounded-pill" style="width: 4px; height: 25px; background-color: {{ item.team.hex_color|default:'#ccc' }}"></span>
+
+                    <div class="flex-grow-1 text-truncate">
+                        <a href="{% url 'driver_detail' item.driver.driver_ref %}" class="text-dark text-decoration-none fw-bold">
+                            {{ item.driver.surname }}
+                        </a>
+                    </div>
+
+                    <span class="badge bg-light text-dark border">{{ item.points|floatformat:0 }}</span>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-muted small">Нет данных</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .hover-up:hover { transform: translateY(-3px); transition: 0.2s; border-color: #aaa !important; }
+    .btn-white { background: #fff; }
+</style>
+{% endblock %}

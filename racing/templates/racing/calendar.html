@@ -1,0 +1,318 @@
+{% extends 'racing/base.html' %}
+{% load racing_extras %}
+
+{% block title %}Календарь {{ year }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css"/>
+
+<style>
+    /* ЭФФЕКТ ФОКУСИРОВКИ (BLUR) */
+    /* Когда наводим мышь на ВЕСЬ контейнер подиума */
+    .podium-container:hover .podium-card {
+        filter: blur(3px) grayscale(0.6) opacity(0.7);
+        transition: all 0.3s ease;
+    }
+
+    /* Когда наводим на КОНКРЕТНУЮ карточку внутри */
+    .podium-container .podium-card:hover {
+        filter: none; /* Убираем блюр */
+        opacity: 1;
+        z-index: 10;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    /* Общий стиль перехода */
+    .podium-card {
+        transition: all 0.3s ease;
+    }
+
+    /* СДВИГ ЦИФР ВПРАВО */
+    .podium-number {
+        position: absolute;
+        top: 0;
+        right: 0px; /* Сдвигаем вправо за границу фото */
+        line-height: 1;
+        margin-top: -15px;
+        z-index: 5;
+        text-shadow: 2px 2px 0px #fff; /* Белая обводка для читаемости */
+    }
+
+    /* СТИЛЬ ДЛЯ СКОШЕННОГО УГЛА (Оставляем) */
+    .f1-card-cut {
+        clip-path: polygon(0 0, 85% 0, 100% 15%, 100% 100%, 0 100%);
+        background-color: white;
+        border: 1px solid #dee2e6;
+        padding: 5px;
+    }
+</style>
+
+<!-- ЗАГОЛОВОК И УПРАВЛЕНИЕ -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-uppercase m-0">Календарь <span class="text-danger">{{ year }}</span></h2>
+
+    <div class="d-flex gap-3 align-items-center mt-2 mt-md-0">
+        <!-- Переключатель Вида -->
+        <div class="btn-group bg-white shadow-sm rounded" role="group">
+            <button type="button" class="btn btn-light border btn-sm active" id="btn-grid" onclick="setCalendarView('grid')" title="Плитка">
+                <i class="bi bi-grid-fill"></i>
+            </button>
+            <button type="button" class="btn btn-light border btn-sm" id="btn-list" onclick="setCalendarView('list')" title="Список">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+
+        <!-- Выбор года -->
+        <form method="get" action="" onchange="window.location.href='../' + this.year.value + '/'">
+            <select name="year" class="form-select fw-bold bg-light border-0 shadow-sm" style="cursor: pointer;">
+                {% for y in available_years %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+<!-- ======================= 1. ВИД ПЛИТКОЙ (GRID) ======================= -->
+<div id="view-grid" class="view-container">
+    <div class="row row-cols-1 row-cols-lg-2 g-4">
+        {% for item in calendar_data %}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0 overflow-hidden">
+
+                <!-- ШАПКА КАРТОЧКИ -->
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">
+                                <a href="{% url 'race_detail' item.race.year item.race.round %}" class="text-decoration-none text-dark hover-danger">
+                                    {{ item.race.name }} <i class="bi bi-chevron-right text-danger small"></i>
+                                </a>
+                            </h5>
+                            <a href="{% url 'circuit_detail' item.race.circuit.circuit_ref %}" class="text-muted small text-decoration-none hover-danger">
+                                {{ item.race.circuit.name }}
+                            </a>
+                        </div>
+                        <div class="d-flex flex-column align-items-end">
+                            <span class="text-muted text-uppercase fw-bold small mb-1">Этап {{ item.race.round }}</span>
+                            <span class="fi fi-{{ item.race.circuit.country|get_flag_code }} fis" style="font-size: 1.5rem; border-radius: 3px;"></span>
+                        </div>
+                    </div>
+
+                    <!-- ДАТА -->
+                    <div class="mt-3 bg-secondary bg-opacity-25 text-secondary fw-bold px-3 py-2 d-inline-block rounded-1" style="font-size: 1.1rem;">
+                        {% if item.race.fp1_time %}
+                            {% if item.race.fp1_time|date:"n" == item.race.date|date:"n" %}
+                                {{ item.race.fp1_time|date:"d" }}—{{ item.race.date|date:"d E" }}
+                            {% else %}
+                                {{ item.race.fp1_time|date:"d E" }} — {{ item.race.date|date:"d E" }}
+                            {% endif %}
+                        {% else %}
+                            {{ item.race.date|date:"d E" }}
+                        {% endif %}
+                    </div>
+
+                    <div class="w-100 mt-2" style="height: 20px; background-image: repeating-linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc), repeating-linear-gradient(45deg, #ccc 25%, #f8f9fa 25%, #f8f9fa 75%, #ccc 75%, #ccc); background-position: 0 0, 10px 10px; background-size: 20px 20px; opacity: 0.3;"></div>
+                </div>
+
+                <!-- ВАРИАНТ 1: ГОНКА ПРОШЛА (ПОДИУМ) -->
+                {% if item.is_finished and item.podium|length >= 3 %}
+                <div class="card-body px-4 pb-4 pt-2">
+                    <!-- Добавили класс podium-container для JS-эффекта -->
+                    <div class="row align-items-end text-center gx-3 mt-3 podium-container">
+
+                        <!-- 2 МЕСТО -->
+                        <div class="col-4 podium-card"> <!-- podium-card для эффекта -->
+                            {% with driver=item.podium.1.driver team=item.podium.1.constructor %}
+                            <div class="position-relative">
+                                <!-- Цифра 2 сдвинута вправо через класс podium-number -->
+                                <span class="fw-bold fs-2 podium-number" style="color: {{ team.hex_color|default:'#000' }};">2</span>
+
+                                <a href="{% url 'driver_detail' driver.driver_ref %}">
+                                    <div class="f1-card-cut">
+                                        {% if driver.photo_cutout %}
+                                            <img src="{{ driver.photo_cutout.url }}" class="img-fluid" alt="{{ driver.code }}">
+                                        {% elif driver.photo %}
+                                            <img src="{{ driver.photo.url }}" class="img-fluid" alt="{{ driver.code }}">
+                                        {% else %}
+                                            <div class="bg-light" style="height: 80px;"></div>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="mt-2"><span class="fw-bold d-block text-dark">{{ driver.code }}</span></div>
+                            {% endwith %}
+                        </div>
+
+                        <!-- 1 МЕСТО -->
+                        <div class="col-4 pb-3 podium-card">
+                            {% with driver=item.podium.0.driver team=item.podium.0.constructor %}
+                            <div class="position-relative" style="transform: scale(1.15);">
+                                <span class="fw-bold fs-1 podium-number" style="color: {{ team.hex_color|default:'#ffd700' }}; margin-top: -20px;">1</span>
+
+                                <a href="{% url 'driver_detail' driver.driver_ref %}">
+                                    <div class="f1-card-cut shadow-sm">
+                                        {% if driver.photo_cutout %}
+                                            <img src="{{ driver.photo_cutout.url }}" class="img-fluid" alt="{{ driver.code }}">
+                                        {% elif driver.photo %}
+                                            <img src="{{ driver.photo.url }}" class="img-fluid" alt="{{ driver.code }}">
+                                        {% else %}
+                                            <div class="bg-light" style="height: 100px;"></div>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="mt-3"><span class="fw-bold d-block text-dark">{{ driver.code }}</span></div>
+                            {% endwith %}
+                        </div>
+
+                        <!-- 3 МЕСТО -->
+                        <div class="col-4 podium-card">
+                            {% with driver=item.podium.2.driver team=item.podium.2.constructor %}
+                            <div class="position-relative">
+                                <span class="fw-bold fs-2 podium-number" style="color: {{ team.hex_color|default:'#cd7f32' }};">3</span>
+
+                                <a href="{% url 'driver_detail' driver.driver_ref %}">
+                                    <div class="f1-card-cut">
+                                        {% if driver.photo_cutout %}
+                                            <img src="{{ driver.photo_cutout.url }}" class="img-fluid" alt="{{ driver.code }}">
+                                        {% elif driver.photo %}
+                                            <img src="{{ driver.photo.url }}" class="img-fluid" alt="{{ driver.code }}">
+                                        {% else %}
+                                            <div class="bg-light" style="height: 80px;"></div>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="mt-2"><span class="fw-bold d-block text-dark">{{ driver.code }}</span></div>
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ВАРИАНТ 2: БУДУЩАЯ ГОНКА -->
+                {% else %}
+                <div class="card-body p-0 position-relative bg-dark text-white" style="min-height: 250px;">
+                    {% if item.race.circuit.layout_image %}
+                    <div class="position-absolute top-0 start-0 w-75 h-100"
+                         style="background-image: url('{{ item.race.circuit.layout_image.url }}');
+                                background-size: contain; background-repeat: no-repeat; background-position: center left;
+                                filter: invert(2) opacity(0.4); margin-left: 20px;">
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-end p-3 position-relative h-100 align-items-center">
+                        <div class="text-end small" style="background: rgba(0,0,0,0.7); padding: 15px; border-radius: 5px; backdrop-filter: blur(2px);">
+                            {% if item.race.fp1_time %}
+                            <div class="d-flex justify-content-between mb-1 gap-4"><span class="text">ПРАКТИКА 1</span><span class="fw-bold text-nowrap">{{ item.race.fp1_time|date:"d b — H:i" }}</span></div>
+                            {% endif %}
+                            {% if item.race.qualifying_time %}
+                            <div class="d-flex justify-content-between mb-1 gap-4 text-white"><span class="text">КВАЛИФИКАЦИЯ</span><span class="fw-bold text-nowrap">{{ item.race.qualifying_time|date:"d b — H:i" }}</span></div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between mt-2 border-top border-secondary pt-2"><span class="text-danger fw-bold">ГОНКА</span><span class="fw-bold text-white text-nowrap">{% if item.race.race_time %}{{ item.race.date|date:"d b" }} — {{ item.race.race_time|time:"H:i" }}{% else %}{{ item.race.date|date:"d b" }}{% endif %}</span></div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ======================= 2. ВИД СПИСКОМ (LIST) ======================= -->
+<div id="view-list" class="view-container d-none">
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase text-muted small">
+                    <tr>
+                        <th class="ps-4">Этап</th>
+                        <th>Дата</th>
+                        <th>Гран-при</th>
+                        <th class="pe-4">Трасса</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in calendar_data %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-secondary">{{ item.race.round }}</td>
+
+                        <!-- Дата -->
+                        <td>
+                            {% if item.race.fp1_time %}
+                                {% if item.race.fp1_time|date:"n" == item.race.date|date:"n" %}
+                                    {{ item.race.fp1_time|date:"d" }}—{{ item.race.date|date:"d b" }}
+                                {% else %}
+                                    {{ item.race.fp1_time|date:"d b" }} — {{ item.race.date|date:"d b" }}
+                                {% endif %}
+                            {% else %}
+                                {{ item.race.date|date:"d b" }}
+                            {% endif %}
+                        </td>
+
+                        <!-- Гран-при с флагом -->
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="fi fi-{{ item.race.circuit.country|get_flag_code }} me-3 shadow-sm rounded-1" style="font-size: 1.2rem;"></span>
+                                <a href="{% url 'race_detail' item.race.year item.race.round %}" class="text-decoration-none text-dark fw-bold fs-5">
+                                    {{ item.race.name }}
+                                </a>
+                            </div>
+                        </td>
+
+                        <!-- Трасса -->
+                        <td class="text-muted pe-4">
+                            <a href="{% url 'circuit_detail' item.race.circuit.circuit_ref %}" class="text-decoration-none text-muted hover-danger">
+                                {{ item.race.circuit.name }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-danger:hover { color: #e10600 !important; }
+</style>
+
+<!-- СКРИПТ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ВИДА -->
+<script>
+    function setCalendarView(mode) {
+        // 1. Сохраняем в память
+        localStorage.setItem('calendarViewMode', mode);
+
+        // 2. Скрываем/Показываем блоки
+        const gridView = document.getElementById('view-grid');
+        const listView = document.getElementById('view-list');
+        const btnGrid = document.getElementById('btn-grid');
+        const btnList = document.getElementById('btn-list');
+
+        if (mode === 'list') {
+            gridView.classList.add('d-none');
+            listView.classList.remove('d-none');
+            btnList.classList.add('active', 'btn-secondary');
+            btnGrid.classList.remove('active', 'btn-secondary');
+            btnList.classList.remove('btn-light');
+            btnGrid.classList.add('btn-light');
+        } else {
+            listView.classList.add('d-none');
+            gridView.classList.remove('d-none');
+            btnGrid.classList.add('active', 'btn-secondary');
+            btnList.classList.remove('active', 'btn-secondary');
+            btnGrid.classList.remove('btn-light');
+            btnList.classList.add('btn-light');
+        }
+    }
+
+    // При загрузке страницы проверяем сохраненную настройку
+    document.addEventListener("DOMContentLoaded", function() {
+        const savedMode = localStorage.getItem('calendarViewMode') || 'grid'; // По умолчанию плитка
+        setCalendarView(savedMode);
+    });
+</script>
+
+{% endblock %}

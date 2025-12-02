@@ -1,0 +1,293 @@
+{% extends 'racing/base.html' %}
+
+{% block title %}{{ race.name }} {{ race.year }}{% endblock %}
+
+{% block content %}
+
+<!-- НАВИГАЦИЯ -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'season_detail' race.year %}" class="text-decoration-none text-danger fw-bold">Сезон {{ race.year }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Этап {{ race.round }}</li>
+    </ol>
+</nav>
+
+<!-- ШАПКА ГОНКИ -->
+<div class="card border-0 shadow-sm mb-5 overflow-hidden">
+    <div class="row g-0">
+        <!-- Инфо -->
+        <div class="col-md-8 p-4 d-flex flex-column justify-content-center">
+            <h5 class="text-muted text-uppercase mb-1">{{ race.date|date:"d E Y" }}</h5>
+            <h1 class="fw-bold display-5 mb-3">{{ race.name }}</h1>
+
+            <div class="d-flex align-items-center">
+                <i class="bi bi-geo-alt-fill text-danger me-2 fs-4"></i>
+                <a href="{% url 'circuit_detail' race.circuit.circuit_ref %}" class="text-decoration-none text-dark fs-4 fw-bold hover-link">
+                    {{ race.circuit.name }}
+                </a>
+            </div>
+            <p class="text-muted ms-4 ps-1">{{ race.circuit.location }}, {{ race.circuit.country }}</p>
+        </div>
+
+        <!-- Карта трассы -->
+        <div class="col-md-4 bg-light d-flex align-items-center justify-content-center p-3">
+            {% if race.circuit.layout_image %}
+                <img src="{{ race.circuit.layout_image.url }}" class="img-fluid" style="max-height: 180px; filter: grayscale(100%); opacity: 0.8;">
+            {% else %}
+                <i class="bi bi-map text-secondary opacity-25" style="font-size: 5rem;"></i>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ВИЗУАЛЬНЫЙ ПОДИУМ (ТОП 3) -->
+{% if podium and podium|length == 3 %}
+<div class="row justify-content-center align-items-end mb-5 text-center px-2">
+
+    <!-- 2 МЕСТО -->
+    <div class="col-4 col-md-3 order-1">
+        {% with p=podium.1 %}
+        <div class="card border-0 shadow-sm position-relative" style="border-top: 4px solid silver !important;">
+            <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-secondary border border-white shadow-sm fs-5">2</span>
+            <div class="card-body pt-4">
+                {% if p.driver.photo_cutout %}
+                    <img src="{{ p.driver.photo_cutout.url }}" class="img-fluid" style="max-height: 100px;">
+                {% elif p.driver.photo %}
+                    <img src="{{ p.driver.photo.url }}" class="rounded-circle mb-2 border" style="width: 80px; height: 80px; object-fit: cover;">
+                {% endif %}
+                <h6 class="fw-bold text-truncate mb-0 mt-2">{{ p.driver.surname }}</h6>
+                <small class="text-muted" style="font-size: 0.7em">{{ p.constructor.name }}</small>
+            </div>
+        </div>
+        {% endwith %}
+    </div>
+
+    <!-- 1 МЕСТО -->
+    <div class="col-4 col-md-3 order-2 pb-4">
+        {% with p=podium.0 %}
+        <div class="card border-0 shadow position-relative" style="transform: scale(1.1); border-top: 4px solid #FFD700 !important; z-index: 10;">
+            <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-warning text-dark border border-white shadow-sm fs-4">1</span>
+            <div class="card-body pt-5">
+                {% if p.driver.photo_cutout %}
+                    <img src="{{ p.driver.photo_cutout.url }}" class="img-fluid" style="max-height: 130px;">
+                {% elif p.driver.photo %}
+                    <img src="{{ p.driver.photo.url }}" class="rounded-circle mb-2 border border-2 border-warning" style="width: 100px; height: 100px; object-fit: cover;">
+                {% endif %}
+                <h5 class="fw-bold text-truncate mb-0 mt-2">{{ p.driver.surname }}</h5>
+                <small class="text-muted fw-bold">{{ p.constructor.name }}</small>
+            </div>
+        </div>
+        {% endwith %}
+    </div>
+
+    <!-- 3 МЕСТО -->
+    <div class="col-4 col-md-3 order-3">
+        {% with p=podium.2 %}
+        <div class="card border-0 shadow-sm position-relative" style="border-top: 4px solid #CD7F32 !important;">
+            <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill border border-white shadow-sm fs-5" style="background-color: #CD7F32; color: white;">3</span>
+            <div class="card-body pt-4">
+                {% if p.driver.photo_cutout %}
+                    <img src="{{ p.driver.photo_cutout.url }}" class="img-fluid" style="max-height: 100px;">
+                {% elif p.driver.photo %}
+                    <img src="{{ p.driver.photo.url }}" class="rounded-circle mb-2 border" style="width: 80px; height: 80px; object-fit: cover;">
+                {% endif %}
+                <h6 class="fw-bold text-truncate mb-0 mt-2">{{ p.driver.surname }}</h6>
+                <small class="text-muted" style="font-size: 0.7em">{{ p.constructor.name }}</small>
+            </div>
+        </div>
+        {% endwith %}
+    </div>
+</div>
+{% endif %}
+
+
+<!-- 1. ТАБЛИЦА РЕЗУЛЬТАТОВ ГОНКИ -->
+<h3 class="mb-3 fw-bold"><i class="bi bi-flag-fill"></i> Гран-при</h3>
+<div class="card border-0 shadow-sm mb-5">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark text-uppercase small">
+                <tr>
+                    <th class="text-center" width="60">Финиш</th>
+                    <th class="text-center border-end" width="60">Старт</th>
+                    <th class="ps-3">Пилот</th>
+                    <th>Команда</th>
+                    <th class="text-center fw-bold">Очки</th>
+                    <th class="text-end">Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for res in results %}
+                <tr {% if res.position == 1 %}class="table-warning"{% endif %}>
+
+                    <!-- Финиш (Поз) -->
+                    <td class="text-center fw-bold fs-5">
+                        {% if res.position %}
+                            {{ res.position_text }}
+                        {% else %}
+                            <span class="text-danger small">{{ res.position_text }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Старт (Квал) - ТЕПЕРЬ РЯДОМ -->
+                    <td class="text-center text-muted border-end">
+                        {% if res.grid == 0 %}
+                            <span class="small">-</span>
+                        {% else %}
+                            {{ res.grid }}
+                            <!-- Индикатор прорыва (зеленая/красная стрелка) -->
+                            {% if res.position and res.grid %}
+                                {% if res.grid > res.position %}
+                                    <span class="text-success small" style="font-size: 0.7em">▲</span>
+                                {% elif res.grid < res.position %}
+                                    <span class="text-danger small" style="font-size: 0.7em">▼</span>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    </td>
+
+                    <!-- Пилот -->
+                    <td class="ps-3">
+                        <div class="d-flex align-items-center">
+                            {% if res.driver.photo %}
+                                <img src="{{ res.driver.photo.url }}" class="rounded-circle border me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            {% endif %}
+                            <a href="{% url 'driver_detail' res.driver.driver_ref %}" class="text-decoration-none text-dark fw-bold">
+                                {{ res.driver.forename }} {{ res.driver.surname }}
+                            </a>
+                            <span class="badge bg-light text-dark border ms-2 small">{{ res.driver.number }}</span>
+                        </div>
+                    </td>
+
+                    <!-- Команда -->
+                    <td>
+                        <a href="{% url 'constructor_detail' res.constructor.constructor_ref %}" class="text-decoration-none text-muted fw-bold small">
+                            {{ res.constructor.name }}
+                        </a>
+                    </td>
+
+                    <!-- Очки -->
+                    <td class="text-center">
+                        {% if res.points > 0 %}
+                            <span class="badge bg-dark text-white rounded-pill px-3">{{ res.points|floatformat:0 }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Статус -->
+                    <td class="text-end small">
+                        {% if res.position %}
+                            <span class="text-success">{{ res.status }}</span>
+                        {% else %}
+                            <span class="text-danger fw-bold">{{ res.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center py-4">Результаты еще не загружены.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- 2. ТАБЛИЦА СПРИНТА (ЕСЛИ БЫЛ) -->
+{% if sprint_results %}
+<h4 class="mb-3 fw-bold text-muted"><i class="bi bi-speedometer2"></i> Результаты Спринта</h4>
+<div class="card border-0 shadow-sm mb-5">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark text-uppercase small">
+                <tr>
+                    <th class="text-center" width="60">Финиш</th>
+                    <th class="text-center border-end" width="60">Старт</th>
+                    <th class="ps-3">Пилот</th>
+                    <th>Команда</th>
+                    <th class="text-center fw-bold">Очки</th>
+                    <th class="text-end">Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for res in sprint_results %}
+                <!-- Подсветка победителя (как в главной гонке) -->
+                <tr {% if res.position == 1 %}class="table-warning"{% endif %}>
+
+                    <!-- Финиш (Поз) -->
+                    <td class="text-center fw-bold fs-5">
+                        {% if res.position %}
+                            {{ res.position_text }}
+                        {% else %}
+                            <span class="text-danger small">{{ res.position_text }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Старт (Квал) + СТРЕЛКИ ПРОГРЕССА -->
+                    <td class="text-center text-muted border-end">
+                        {% if res.grid == 0 %}
+                            <span class="small">-</span>
+                        {% else %}
+                            {{ res.grid }}
+                            {% if res.position and res.grid %}
+                                {% if res.grid > res.position %}
+                                    <span class="text-success small" style="font-size: 0.7em">▲</span>
+                                {% elif res.grid < res.position %}
+                                    <span class="text-danger small" style="font-size: 0.7em">▼</span>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    </td>
+
+                    <!-- Пилот (С ФОТО И НОМЕРОМ) -->
+                    <td class="ps-3">
+                        <div class="d-flex align-items-center">
+                            {% if res.driver.photo %}
+                                <img src="{{ res.driver.photo.url }}" class="rounded-circle border me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            {% else %}
+                                <!-- Заглушка, если фото нет, чтобы отступ сохранился -->
+                                <div class="rounded-circle border me-2 bg-light d-flex align-items-center justify-content-center text-muted" style="width: 30px; height: 30px;">
+                                    <i class="bi bi-person-fill" style="font-size: 0.8rem;"></i>
+                                </div>
+                            {% endif %}
+
+                            <a href="{% url 'driver_detail' res.driver.driver_ref %}" class="text-decoration-none text-dark fw-bold">
+                                {{ res.driver.forename }} {{ res.driver.surname }}
+                            </a>
+                            <span class="badge bg-light text-dark border ms-2 small">{{ res.driver.number }}</span>
+                        </div>
+                    </td>
+
+                    <!-- Команда -->
+                    <td>
+                        <a href="{% url 'constructor_detail' res.constructor.constructor_ref %}" class="text-decoration-none text-muted fw-bold small">
+                            {{ res.constructor.name }}
+                        </a>
+                    </td>
+
+                    <!-- Очки (Бейджик) -->
+                    <td class="text-center">
+                        {% if res.points > 0 %}
+                            <!-- Используем secondary цвет для бейджа, чтобы чуть отличать от главной гонки, но форма та же -->
+                            <span class="badge bg-secondary text-white rounded-pill px-3">{{ res.points|floatformat:0 }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Статус (Раскрашенный) -->
+                    <td class="text-end small">
+                        {% if res.position %}
+                            <span class="text-success">Финиш</span>
+                        {% else %}
+                            <span class="text-danger fw-bold">{{ res.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .hover-link:hover { color: #e10600 !important; text-decoration: underline !important; }
+</style>
+{% endblock %}

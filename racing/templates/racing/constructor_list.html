@@ -1,0 +1,79 @@
+{% extends 'racing/base.html' %}
+
+{% block title %}Команды F1{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 fw-bold">Кубок Конструкторов <span class="text-danger">{{ current_season }}</span></h2>
+
+<!-- АКТИВНЫЕ КОМАНДЫ (Сеткой с цветной обводкой) -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-5 g-4 mb-5">
+    {% for team in active_teams %}
+    <div class="col">
+        <!-- Добавили border-top с цветом команды -->
+        <div class="card h-100 shadow-sm border-0 text-center hover-card"
+             style="border-top: 4px solid {{ team.hex_color|default:'#333' }} !important;">
+
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                {% if team.logo %}
+                    <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="img-fluid mb-3" style="max-height: 80px;">
+                {% else %}
+                    <div class="mb-3 text-secondary opacity-25"><i class="bi bi-shield-shaded" style="font-size: 3rem;"></i></div>
+                {% endif %}
+
+                <!-- Название команды тоже красим -->
+                <h5 class="card-title fw-bold" style="color: {{ team.hex_color|default:'#212529' }}">
+                    {{ team.name }}
+                </h5>
+
+                <p class="text-muted small mb-3">{{ team.nationality }}</p>
+                <a href="{% url 'constructor_detail' team.constructor_ref %}" class="btn btn-sm btn-outline-danger mt-auto stretched-link">Профиль</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+        <p>Нет активных команд в сезоне {{ current_season }}</p>
+    {% endfor %}
+</div>
+
+<hr>
+
+<h3 class="mb-3 text-secondary">Исторический архив</h3>
+<div class="card border-0 shadow-sm">
+    <!-- Обертка для скролла -->
+    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+        <table class="table table-hover table-sm align-middle mb-0">
+            <thead class="table-light">
+                <!-- Стили для фиксации шапки -->
+                <tr style="position: sticky; top: 0; z-index: 10;">
+                    <th class="py-2 bg-light shadow-sm">Название</th>
+                    <th class="py-2 bg-light shadow-sm">Страна</th>
+                    <th class="py-2 bg-light shadow-sm text-end">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in historic_teams %}
+                <tr>
+                    <td class="fw-bold px-3">
+                        <span class="d-inline-block rounded-circle me-2 border"
+                              style="width: 10px; height: 10px; background-color: {{ team.hex_color|default:'#ccc' }};">
+                        </span>
+                        {{ team.name }}
+                    </td>
+                    <td>{{ team.nationality }}</td>
+                    <td class="text-end px-3">
+                        <a href="{% url 'constructor_detail' team.constructor_ref %}" class="btn btn-sm btn-light text-muted">
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .hover-card { transition: transform 0.2s; }
+    .hover-card:hover { transform: translateY(-5px); }
+</style>
+{% endblock %}

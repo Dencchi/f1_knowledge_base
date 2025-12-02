@@ -1,0 +1,142 @@
+{% extends 'racing/base.html' %}
+
+{% block title %}{{ circuit.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- ЛЕВАЯ КОЛОНКА -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h6 class="text-uppercase text-muted fw-bold">{{ circuit.country }}</h6>
+                <h2 class="fw-bold mb-3">{{ circuit.location }}</h2>
+                <p class="text-muted">{{ circuit.name }}</p>
+
+                <!-- Схема трассы -->
+                {% if circuit.layout_image %}
+                    <img src="{{ circuit.layout_image.url }}" class="img-fluid my-3" alt="Схема">
+                {% else %}
+                    <div class="bg-light rounded p-4 text-center text-muted my-3">
+                        <i class="bi bi-map" style="font-size: 3rem;"></i>
+                        <p class="small mt-2">Схема не загружена</p>
+                    </div>
+                {% endif %}
+
+                <!-- Кнопка Карты -->
+                {% if circuit.lat %}
+                <div class="ratio ratio-1x1 mb-3 border rounded overflow-hidden shadow-sm">
+                    <iframe
+                        width="100%"
+                        height="400"
+                        frameborder="0"
+                        scrolling="no"
+                        marginheight="0"
+                        marginwidth="0"
+                        src="https://maps.google.com/maps?q={{ circuit.lat }},{{ circuit.lng }}&hl=ru&z=14&ie=UTF8&iwloc=B&output=embed">
+                    </iframe>
+                </div>
+                <small class="text-muted d-block text-center mb-3">Вид со спутника</small>
+                {% endif %}
+
+                {% if circuit.url %}
+                <a href="{{ circuit.url }}" target="_blank" class="btn btn-outline-dark w-100">
+                    <i class="bi bi-wikipedia"></i> Википедия
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-dark text-white fw-bold">Статистика</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Всего Гран-при</span> <span class="fw-bold">{{ stats.count }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Первая гонка</span> <span>{{ stats.first_year }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Последняя гонка</span> <span>{{ stats.last_year }}</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Короли трассы -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-warning text-dark fw-bold">
+                <i class="bi bi-trophy-fill"></i> Рекордсмены
+            </div>
+            <div class="card-body">
+                {% if top_driver %}
+                <div class="mb-3">
+                    <small class="text-muted text-uppercase">Пилот</small>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'driver_detail' top_driver.driver__driver_ref %}" class="fw-bold text-dark text-decoration-none fs-5">
+                            {{ top_driver.driver__forename }} {{ top_driver.driver__surname }}
+                        </a>
+                        <span class="badge bg-dark">{{ top_driver.wins }} побед</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if top_team %}
+                <div>
+                    <small class="text-muted text-uppercase">Команда</small>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'constructor_detail' top_team.constructor__constructor_ref %}" class="fw-bold text-dark text-decoration-none fs-5">
+                            {{ top_team.constructor__name }}
+                        </a>
+                        <span class="badge bg-dark">{{ top_team.wins }} побед</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ПРАВАЯ КОЛОНКА: История гонок -->
+    <div class="col-md-8">
+        <h4 class="fw-bold mb-3">История Гран-при</h4>
+
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Сезон</th>
+                            <th>Гран-при</th>
+                            <th>Победитель</th>
+                            <th>Команда</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in races_data %}
+                        <tr>
+                            <td class="fw-bold">{{ item.race.year }}</td>
+                            <td>{{ item.race.name }}</td>
+                            <td>
+                                {% if item.winner %}
+                                    <a href="{% url 'driver_detail' item.winner.driver.driver_ref %}" class="text-decoration-none fw-bold text-dark">
+                                        {{ item.winner.driver.forename }} {{ item.winner.driver.surname }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.winner %}
+                                    <a href="{% url 'constructor_detail' item.winner.constructor.constructor_ref %}" class="text-decoration-none text-muted">
+                                        {{ item.winner.constructor.name }}
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

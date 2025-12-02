@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}F1 Knowledge Base{% endblock %}</title>
+    <!-- Подключаем Bootstrap 5 (Стили) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Иконки (Bootstrap Icons) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar-brand { font-weight: bold; color: #e10600 !important; } /* F1 Red */
+        .card { border: none; shadow-sm: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .stat-box { text-align: center; padding: 15px; background: white; border-radius: 10px; border: 1px solid #ddd; }
+        .stat-num { font-size: 2rem; font-weight: bold; color: #e10600; }
+        .stat-label { font-size: 0.9rem; color: #666; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <!-- Меню навигации -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}"><i class="bi bi-speedometer2"></i> F1 BASE</a>
+
+            <form class="d-flex mx-auto" role="search" action="{% url 'search' %}" method="get" style="max-width: 400px; width: 100%;">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input class="form-control border-start-0 ps-0" type="search" name="q" placeholder="Поиск (пилот, команда, год)..." aria-label="Search">
+                </div>
+            </form>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'calendar' 2025 %}"><i class="bi bi-calendar-event"></i> Календарь</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'season_detail' 2025 %}">Итоги</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'driver_list' %}">Пилоты</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'constructor_list' %}">Команды</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'circuit_list' %}">Трассы</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/admin/">Admin</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <footer class="text-center py-4 text-muted mt-5">
+        <small>Курсовая работа &copy; 2025. Данные предоставлены Jolpica/Ergast API.</small>
+    </footer>
+
+    <!-- Скрипты Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

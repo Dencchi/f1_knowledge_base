@@ -1,0 +1,466 @@
+{% extends 'racing/base.html' %}
+
+{% block title %}{{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+
+    <!-- ================= ЛЕВАЯ КОЛОНКА ================= -->
+    <div class="col-lg-3 col-md-4">
+
+        <!-- 1. Логотип и Инфо -->
+        <div class="card border-0 shadow-sm text-center mb-4">
+            <div class="card-body bg-light">
+                {% if team.logo %}
+                    <img src="{{ team.logo.url }}" class="img-fluid mb-4" style="max-width: 180px;">
+                {% else %}
+                    <div class="py-4 text-secondary"><i class="bi bi-shield-shaded" style="font-size: 4rem;"></i></div>
+                {% endif %}
+
+                <h3 class="fw-bold mb-0">{{ team.name }}</h3>
+
+                <!-- Год дебюта -->
+                {% if first_entry %}
+                    <p class="text-muted mb-2 small">Дебют: <strong>{{ first_entry }}</strong></p>
+                {% endif %}
+
+                <!-- Флаг страны -->
+                <div class="badge bg-dark mb-3">{{ team.nationality }}</div>
+
+                <!-- ТИТУЛЫ (ЗОЛОТОЙ БЕЙДЖ) -->
+                {% if team.championships > 0 %}
+                <div class="mb-3">
+                    <span class="badge bg-warning text-dark border border-warning p-2 shadow-sm" style="font-size: 0.9rem;">
+                        <i class="bi bi-trophy-fill"></i> {{ team.championships }}x Кубок Конструкторов
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Ссылка на Вики -->
+                {% if team.url %}
+                    <a href="{{ team.url }}" target="_blank" class="btn btn-outline-dark btn-sm w-100">
+                        <i class="bi bi-wikipedia"></i> Википедия
+                    </a>
+                {% endif %}
+
+                {% if team.description %}
+                    <hr>
+                    <p class="text-start mt-3 small text-muted">{{ team.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Общая статистика (Total) -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-dark text-white fw-bold">
+                <i class="bi bi-bar-chart-fill"></i> История (Total)
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Гран-при</span> <span class="fw-bold">{{ total_stats.races }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Победы</span> <span class="fw-bold text-success">{{ total_stats.wins }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Подиумы</span> <span class="fw-bold text-primary">{{ total_stats.podiums }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Поулы</span> <span class="fw-bold">{{ total_stats.poles }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between bg-light">
+                    <span class="fw-bold">Очки</span>
+                    <span class="fw-bold text-danger">{{ total_stats.points|floatformat:0 }}</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Архив пилотов -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold text-uppercase d-flex justify-content-between">
+                <span><i class="bi bi-clock-history"></i> Архив пилотов</span>
+                <span class="badge bg-secondary">{{ all_drivers|length }}</span>
+            </div>
+            <div class="card-body p-2" style="max-height: 500px; overflow-y: auto;">
+                <div class="d-flex flex-wrap gap-1">
+                    {% for item in all_drivers %}
+                        <a href="{% url 'driver_detail' item.driver.driver_ref %}"
+                           class="btn btn-sm btn-outline-light text-dark border d-flex align-items-center w-100 justify-content-between"
+                           style="font-size: 0.85rem;">
+                            <span class="fw-bold text-truncate">{{ item.driver.surname }}</span>
+                            <span class="badge bg-secondary text-white" style="font-size: 0.7em;">{{ item.period }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ПРАВАЯ КОЛОНКА ================= -->
+    <div class="col-lg-9 col-md-8">
+
+        <!-- ВЫБОР ГОДА -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold text-uppercase text-danger m-0">Сезон {{ selected_year }}</h4>
+            {% if available_years %}
+            <form method="get">
+                <select name="year" class="form-select form-select-sm border-0 bg-white shadow-sm fw-bold" onchange="this.form.submit()">
+                    {% for y in available_years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- 1. АКТИВНЫЕ ПИЛОТЫ (Состав) - ВОССТАНОВЛЕНО -->
+        {% if drivers_detailed %}
+        <div class="row g-3 mb-4">
+            {% for item in drivers_detailed %}
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100 position-relative">
+
+                    <!-- БЕЙДЖ ЗАПАСНОГО -->
+                    {% if item.is_reserve %}
+                    <span class="position-absolute top-0 end-0 badge bg-warning text-dark m-2 shadow-sm">
+                        <i class="bi bi-person-plus-fill"></i> ЗАПАСНОЙ
+                    </span>
+                    {% endif %}
+
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3">
+                            {% if item.obj.photo %}
+                                <img src="{{ item.obj.photo.url }}" class="rounded-circle border" style="width: 80px; height: 80px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-secondary border" style="width: 80px; height: 80px;">
+                                    <i class="bi bi-person-fill fs-2"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="fw-bold mb-1">
+                                <a href="{% url 'driver_detail' item.obj.driver_ref %}" class="text-decoration-none text-dark stretched-link">
+                                    {{ item.obj.forename }} {{ item.obj.surname }}
+                                </a>
+                            </h5>
+                            <div class="text-muted small mb-2">
+                                <span class="badge bg-secondary">#{{ item.obj.number }}</span> {{ item.obj.nationality }}
+                            </div>
+
+                            <!-- Мини-статистика в карточке пилота -->
+                            <div class="d-flex justify-content-between bg-light rounded p-2 small">
+                                <div class="text-center px-2 border-end">
+                                    <div class="fw-bold text-dark">{{ item.points|floatformat:0 }}</div>
+                                    <div class="text-muted" style="font-size: 0.7em">ОЧКОВ</div>
+                                </div>
+                                <div class="text-center px-2 border-end">
+                                    <div class="fw-bold text-success">{{ item.wins }}</div>
+                                    <div class="text-muted" style="font-size: 0.7em">ПОБЕД</div>
+                                </div>
+                                <div class="text-center px-2">
+                                    <div class="fw-bold text-primary">{{ item.podiums }}</div>
+                                    <div class="text-muted" style="font-size: 0.7em">ПОДИУМОВ</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 2. СТАТИСТИКА СЕЗОНА (КОМАНДНАЯ) - ИСПРАВЛЕН ПУСТОЙ БЛОК -->
+        <div class="card bg-white border mb-4 shadow-sm">
+            <div class="card-header bg-transparent fw-bold text-uppercase">
+                <i class="bi bi-calculator"></i> Итоги сезона {{ selected_year }} (Кубок конструкторов)
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 col-6 border-end">
+                        <div class="display-6 fw-bold text-danger">{{ season_total_stats.points|floatformat:0 }}</div>
+                        <small class="text-muted text-uppercase fw-bold">Очков</small>
+                    </div>
+                    <div class="col-md-3 col-6 border-end">
+                        <div class="display-6 fw-bold text-dark">{{ season_total_stats.wins }}</div>
+                        <small class="text-muted text-uppercase fw-bold">Побед</small>
+                    </div>
+                    <div class="col-md-3 col-6 border-end">
+                        <div class="display-6 fw-bold text-primary">{{ season_total_stats.podiums }}</div>
+                        <small class="text-muted text-uppercase fw-bold">Подиумов</small>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="display-6 fw-bold text-dark">{{ season_total_stats.poles }}</div>
+                        <small class="text-muted text-uppercase fw-bold">Поулов</small>
+                    </div>
+                </div>
+
+                <!-- КНОПКА ПОДРОБНЕЕ -->
+                <div class="text-center mt-3">
+                    <button class="btn btn-sm btn-outline-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#teamStatsCollapse">
+                        <i class="bi bi-chevron-down"></i> Подробная разбивка (Гран-при / Спринты)
+                    </button>
+                </div>
+
+                <!-- СКРЫТАЯ ТАБЛИЦА -->
+                <div class="collapse mt-3" id="teamStatsCollapse">
+                    <div class="card card-body bg-light border-0">
+                        <table class="table table-sm table-bordered text-center align-middle bg-white mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-start">Показатель</th><th>Гран-при</th><th>Спринты</th><th class="table-active">Всего</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td class="text-start">Победы</td><td>{{ season_gp_stats.wins }}</td><td>{{ season_sprint_stats.wins }}</td><td class="fw-bold">{{ season_total_stats.wins }}</td></tr>
+                                <tr><td class="text-start">Подиумы</td><td>{{ season_gp_stats.podiums }}</td><td>{{ season_sprint_stats.podiums }}</td><td class="fw-bold">{{ season_total_stats.podiums }}</td></tr>
+                                <tr><td class="text-start">Поулы</td><td>{{ season_gp_stats.poles }}</td><td>{{ season_sprint_stats.poles }}</td><td class="fw-bold">{{ season_total_stats.poles }}</td></tr>
+                                <tr><td class="text-start">Топ-10</td><td>{{ season_gp_stats.top10s }}</td><td>{{ season_sprint_stats.top10s }}</td><td class="fw-bold">{{ season_total_stats.top10s }}</td></tr>
+                                <tr><td class="text-start">Сходы</td><td>{{ season_gp_stats.dnfs }}</td><td>{{ season_sprint_stats.dnfs }}</td><td class="fw-bold">{{ season_total_stats.dnfs }}</td></tr>
+                                <tr class="table-active"><td class="text-start fw-bold">Очки</td><td>{{ season_gp_stats.points|floatformat:0 }}</td><td>{{ season_sprint_stats.points|floatformat:0 }}</td><td class="fw-bold text-danger">{{ season_total_stats.points|floatformat:0 }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. СРАВНЕНИЕ ПИЛОТОВ (HEAD TO HEAD) -->
+        {% if comparison_drivers|length == 2 %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold text-uppercase border-bottom">
+                <i class="bi bi-bar-chart-steps"></i> Сравнение пилотов (Head to Head)
+            </div>
+            <div class="card-body">
+                <div class="row text-center align-items-end mb-4">
+                    <!-- Пилот 1 -->
+                    <div class="col-4">
+                        {% with d=comparison_drivers.0.obj %}
+                            {% if d.photo %}<img src="{{ d.photo.url }}" class="rounded-circle border mb-2" style="width: 70px; height: 70px; object-fit: cover;">{% endif %}
+                            <h6 class="fw-bold mb-0 text-truncate">{{ d.forename }} {{ d.surname }}</h6>
+                            <small class="text-muted">{{ d.nationality }}</small>
+                        {% endwith %}
+                    </div>
+
+                    <div class="col-4 pb-3">
+                        <span class="text-muted fw-bold small text-uppercase bg-light px-2 py-1 rounded">VS</span>
+                    </div>
+
+                    <!-- Пилот 2 -->
+                    <div class="col-4">
+                        {% with d=comparison_drivers.1.obj %}
+                            {% if d.photo %}<img src="{{ d.photo.url }}" class="rounded-circle border mb-2" style="width: 70px; height: 70px; object-fit: cover;">{% endif %}
+                            <h6 class="fw-bold mb-0 text-truncate">{{ d.forename }} {{ d.surname }}</h6>
+                            <small class="text-muted">{{ d.nationality }}</small>
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <!-- ГРАФИКИ (Исправленные) -->
+                <div class="px-2">
+                    {% with d1=comparison_drivers.0 d2=comparison_drivers.1 %}
+
+                    <!-- ОЧКИ -->
+                    <div class="row align-items-center mb-3" style="font-size: 0.9rem;">
+                        <div class="col-2 text-end fw-bold">{{ d1.points|floatformat:0 }}</div>
+                        <div class="col-8">
+                            <div class="text-center text-uppercase text-muted small mb-1" style="font-size: 0.7em; letter-spacing: 1px;">ОЧКИ</div>
+                            <div class="progress" style="height: 8px;">
+                                {% if d1.points == 0 and d2.points == 0 %}
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div><div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div>
+                                {% else %}
+                                    <div class="progress-bar bg-primary" style="width: {% widthratio d1.points d1.points|add:d2.points 100 %}%"></div>
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: {% widthratio d2.points d1.points|add:d2.points 100 %}%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-2 text-start fw-bold">{{ d2.points|floatformat:0 }}</div>
+                    </div>
+
+                    <!-- ПОБЕДЫ -->
+                    <div class="row align-items-center mb-3" style="font-size: 0.9rem;">
+                        <div class="col-2 text-end fw-bold">{{ d1.wins }}</div>
+                        <div class="col-8">
+                            <div class="text-center text-uppercase text-muted small mb-1" style="font-size: 0.7em; letter-spacing: 1px;">ПОБЕДЫ</div>
+                            <div class="progress" style="height: 8px;">
+                                {% if d1.wins == 0 and d2.wins == 0 %}
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div><div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div>
+                                {% else %}
+                                    <div class="progress-bar bg-primary" style="width: {% widthratio d1.wins d1.wins|add:d2.wins 100 %}%"></div>
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: {% widthratio d2.wins d1.wins|add:d2.wins 100 %}%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-2 text-start fw-bold">{{ d2.wins }}</div>
+                    </div>
+
+                    <!-- ПОДИУМЫ -->
+                    <div class="row align-items-center mb-3" style="font-size: 0.9rem;">
+                        <div class="col-2 text-end fw-bold">{{ d1.podiums }}</div>
+                        <div class="col-8">
+                            <div class="text-center text-uppercase text-muted small mb-1" style="font-size: 0.7em; letter-spacing: 1px;">ПОДИУМЫ</div>
+                            <div class="progress" style="height: 8px;">
+                                {% if d1.podiums == 0 and d2.podiums == 0 %}
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div><div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div>
+                                {% else %}
+                                    <div class="progress-bar bg-primary" style="width: {% widthratio d1.podiums d1.podiums|add:d2.podiums 100 %}%"></div>
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: {% widthratio d2.podiums d1.podiums|add:d2.podiums 100 %}%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-2 text-start fw-bold">{{ d2.podiums }}</div>
+                    </div>
+
+                    <!-- ГОНОК -->
+                    <div class="row align-items-center mb-3" style="font-size: 0.9rem;">
+                        <div class="col-2 text-end fw-bold">{{ d1.races }}</div>
+                        <div class="col-8">
+                            <div class="text-center text-uppercase text-muted small mb-1" style="font-size: 0.7em; letter-spacing: 1px;">ГОНОК</div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-primary" style="width: {% widthratio d1.races d1.races|add:d2.races 100 %}%"></div>
+                                <div class="progress-bar bg-secondary opacity-25" style="width: {% widthratio d2.races d1.races|add:d2.races 100 %}%"></div>
+                            </div>
+                        </div>
+                        <div class="col-2 text-start fw-bold">{{ d2.races }}</div>
+                    </div>
+
+                    <!-- ПОУЛЫ -->
+                    <div class="row align-items-center mb-3" style="font-size: 0.9rem;">
+                        <div class="col-2 text-end fw-bold">{{ d1.poles }}</div>
+                        <div class="col-8">
+                            <div class="text-center text-uppercase text-muted small mb-1" style="font-size: 0.7em; letter-spacing: 1px;">КВАЛИФИКАЦИИ (ПОУЛЫ)</div>
+                            <div class="progress" style="height: 8px;">
+                                {% if d1.poles == 0 and d2.poles == 0 %}
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div><div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div>
+                                {% else %}
+                                    <div class="progress-bar bg-primary" style="width: {% widthratio d1.poles d1.poles|add:d2.poles 100 %}%"></div>
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: {% widthratio d2.poles d1.poles|add:d2.poles 100 %}%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-2 text-start fw-bold">{{ d2.poles }}</div>
+                    </div>
+
+                    <!-- СХОДЫ -->
+                    <div class="row align-items-center mb-2" style="font-size: 0.9rem;">
+                        <div class="col-2 text-end fw-bold text-danger">{{ d1.dnfs }}</div>
+                        <div class="col-8">
+                            <div class="text-center text-uppercase text-muted small mb-1" style="font-size: 0.7em; letter-spacing: 1px;">СХОДЫ (DNF)</div>
+                             <div class="progress" style="height: 8px;">
+                                {% if d1.dnfs == 0 and d2.dnfs == 0 %}
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div><div class="progress-bar bg-secondary opacity-25" style="width: 50%"></div>
+                                {% else %}
+                                    <div class="progress-bar bg-danger" style="width: {% widthratio d1.dnfs d1.dnfs|add:d2.dnfs 100 %}%"></div>
+                                    <div class="progress-bar bg-secondary opacity-25" style="width: {% widthratio d2.dnfs d1.dnfs|add:d2.dnfs 100 %}%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-2 text-start fw-bold text-danger">{{ d2.dnfs }}</div>
+                    </div>
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 4. ТАБЛИЦА ГОНОК -->
+        <h5 class="fw-bold mb-3">Результаты по Гран-при ({{ season_stats.year }})</h5>
+
+        <div class="card border-0 shadow-sm overflow-hidden mb-5">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 30%;">Гран-при</th>
+                            <th style="width: 25%;">Пилот</th>
+                            <th class="text-center">Старт</th>
+                            <th class="text-center">Финиш</th>
+                            <th class="text-center fw-bold">Очки</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in season_race_data %}
+
+                            <!-- ЗАГОЛОВОК ГОНКИ (ОБЩИЙ ДЛЯ ПИЛОТОВ) -->
+                            <tr class="table-secondary border-bottom border-white">
+                                <td colspan="5" class="py-2 px-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <!-- ИСПРАВЛЕННАЯ ССЫЛКА НА ГОНКУ (item.race) -->
+                                        <a href="{% url 'race_detail' item.race.year item.race.round %}" class="fw-bold text-uppercase text-dark text-decoration-none hover-danger">
+                                            {{ item.race.name }}
+                                        </a>
+                                        <small class="text-muted">{{ item.race.date|date:"d M Y" }}</small>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- РЕЗУЛЬТАТЫ ГРАН-ПРИ -->
+                            {% for res in item.results %}
+                            <tr class="bg-white border-bottom">
+                                <td class="ps-4 text-muted small">Гонка</td>
+                                <td>
+                                    <a href="{% url 'driver_detail' res.driver.driver_ref %}" class="fw-bold text-dark text-decoration-none">
+                                        {{ res.driver.surname }}
+                                    </a>
+                                    {% for d in drivers_detailed %}
+                                        {% if d.obj == res.driver and d.is_reserve %}
+                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6em">RES</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td class="text-center text-muted">{{ res.grid }}</td>
+                                <td class="text-center">
+                                    {% if res.position == 1 %}
+                                        <span class="badge bg-warning text-dark">1</span>
+                                    {% elif res.position <= 3 %}
+                                        <span class="badge bg-secondary">{{ res.position }}</span>
+                                    {% else %}
+                                        <span class="fw-bold">{{ res.position_text }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center fw-bold">{{ res.points|floatformat:0 }}</td>
+                            </tr>
+                            {% endfor %}
+
+                            <!-- РЕЗУЛЬТАТЫ СПРИНТА (ЕСЛИ БЫЛ) -->
+                            {% if item.sprints %}
+                                {% for sres in item.sprints %}
+                                <!-- Убрали style="font-size: 0.9em;", теперь размер стандартный -->
+                                <tr class="bg-light border-bottom">
+                                    <td class="ps-4 text-start">
+                                        <!-- Иконку и текст "Спринт" оставим чуть меньше, чтобы отличать от гонки -->
+                                        <a href="{% url 'race_detail' item.race.year item.race.round %}" class="text-muted fw-bold text-uppercase fst-italic text-decoration-none hover-danger small">
+                                            <i class="bi bi-speedometer2"></i> Спринт
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <!-- ПИЛОТ: Теперь ссылка и жирный шрифт -->
+                                        <a href="{% url 'driver_detail' sres.driver.driver_ref %}" class="fw-bold text-dark text-decoration-none">
+                                            {{ sres.driver.surname }}
+                                        </a>
+                                    </td>
+                                    <!-- Убрали классы 'small' у цифр -->
+                                    <td class="text-center text-muted">{{ sres.grid }}</td>
+                                    <td class="text-center">
+                                        <span class="fw-bold text-secondary">{{ sres.position_text }}</span>
+                                    </td>
+                                    <td class="text-center text-muted fw-bold">{{ sres.points|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+
+                        {% empty %}
+                            <tr><td colspan="5" class="text-center py-4">Нет результатов</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+<style>
+    .hover-danger:hover { color: #e10600 !important; text-decoration: underline !important; }
+</style>

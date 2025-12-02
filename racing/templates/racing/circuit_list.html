@@ -1,0 +1,115 @@
+{% extends 'racing/base.html' %}
+
+{% block title %}Трассы F1{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 fw-bold">Трассы <span class="text-danger">{{ current_season }}</span></h2>
+
+<!-- АКТИВНЫЕ ТРАССЫ (Сетка) -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
+    {% for circuit in active_circuits %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 hover-card">
+            <div class="card-body text-center d-flex flex-column">
+
+                <!-- Страна -->
+                <div class="text-uppercase text-muted fw-bold small mb-1">{{ circuit.country }}</div>
+
+                <!-- Город -->
+                <h5 class="card-title fw-bold">{{ circuit.location }}</h5>
+
+                <!-- ПРЕВЬЮ ТРАССЫ (НОВОЕ) -->
+                <div class="my-3 d-flex align-items-center justify-content-center" style="height: 120px;">
+                    {% if circuit.layout_image %}
+                        <!-- Выводим картинку, если есть -->
+                        <!-- object-fit: contain гарантирует, что трасса влезет целиком и не растянется -->
+                        <img src="{{ circuit.layout_image.url }}"
+                             alt="{{ circuit.name }}"
+                             class="img-fluid"
+                             style="max-height: 100%; max-width: 100%; object-fit: contain; filter: grayscale(100%) opacity(0.8);">
+                             <!-- filter: grayscale... можно убрать, если хочешь цветные, но ч/б выглядит стильнее в списке -->
+                    {% else %}
+                        <!-- Заглушка, если картинки нет -->
+                        <div class="text-secondary opacity-25">
+                            <i class="bi bi-map" style="font-size: 4rem;"></i>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Название автодрома -->
+                <p class="small text-secondary mb-3 text-truncate" title="{{ circuit.name }}">
+                    {{ circuit.name }}
+                </p>
+
+                <!-- Кнопка (прижата к низу через mt-auto) -->
+                <a href="{% url 'circuit_detail' circuit.circuit_ref %}" class="btn btn-sm btn-outline-danger w-100 mt-auto stretched-link">
+                    Информация
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<hr>
+
+<!-- ИСТОРИЧЕСКИЕ (Таблица) -->
+<h3 class="mb-3 text-secondary">Архив трасс</h3>
+<div class="card border-0 shadow-sm">
+    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Местоположение</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for circuit in historic_circuits %}
+                <tr>
+                    <td class="fw-bold align-middle">{{ circuit.name }}</td>
+                    <td class="align-middle">{{ circuit.location }}, {{ circuit.country }}</td>
+                    <td class="align-middle">
+                        <div class="btn-group btn-group-sm" role="group">
+
+                            <!-- 1. Google Maps (если есть координаты) -->
+                            {% if circuit.lat %}
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ circuit.lat }},{{ circuit.lng }}"
+                               target="_blank"
+                               class="btn btn-outline-secondary"
+                               title="Показать на карте">
+                                <i class="bi bi-geo-alt"></i>
+                            </a>
+                            {% endif %}
+
+                            <!-- 2. Wikipedia (если есть ссылка) -->
+                            {% if circuit.url %}
+                            <a href="{{ circuit.url }}"
+                               target="_blank"
+                               class="btn btn-outline-secondary"
+                               title="Википедия">
+                                <i class="bi bi-wikipedia"></i>
+                            </a>
+                            {% endif %}
+
+                            <!-- 3. Переход на страницу (основная кнопка) -->
+                            <a href="{% url 'circuit_detail' circuit.circuit_ref %}"
+                               class="btn btn-outline-primary"
+                               title="Полная статистика">
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .hover-card { transition: transform 0.2s; }
+    .hover-card:hover { transform: translateY(-5px); }
+</style>
+{% endblock %}
